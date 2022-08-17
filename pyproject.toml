@@ -13,6 +13,9 @@ tensorboard = "^2.10.0"
 typing-extensions = "^4.3.0"
 tqdm = "^4.64.0"
 scipy = "^1.9.0"
+pydicom = "^2.3.0"
+imageio = "^2.21.1"
+nibabel = "^4.0.1"
 
 [tool.poetry.dev-dependencies]
 ipython = "^8.4.0"
