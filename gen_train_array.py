@@ -37,7 +37,7 @@ def gen_image_patches(files, queue, patch_size=SIZE, num_patches=NUM_PATCHES):
     original_image = nb.load(str(image_filename)).get_fdata()
     original_mask = nb.load(str(mask_filename)).get_fdata()
 
-    print(image_filename, mask_filename)
+    print(image_filename, (original_image.min(), original_image.max()), mask_filename, (original_mask.min(), original_mask.max()))
 
     normalized_image = image_normalize(original_image).astype(np.float32)
     normalized_mask = image_normalize(original_mask).astype(np.float32)
@@ -97,7 +97,6 @@ def gen_image_patches(files, queue, patch_size=SIZE, num_patches=NUM_PATCHES):
                 else:
                     disponible_patches.append(patch)
                 if patches_added >= math.ceil(num_patches * 0.80):
-                    print("> 10%%", patches_added)
                     break
 
             patches = disponible_patches
@@ -111,7 +110,6 @@ def gen_image_patches(files, queue, patch_size=SIZE, num_patches=NUM_PATCHES):
                 else:
                     disponible_patches.append(patch)
                 if patches_added >= num_patches:
-                    print("< 10%%", patches_added)
                     break
 
             if patches_added < num_patches:
@@ -121,7 +119,6 @@ def gen_image_patches(files, queue, patch_size=SIZE, num_patches=NUM_PATCHES):
                     queue.put((sub_image, sub_mask))
                     patches_added += 1
                     if patches_added >= num_patches:
-                        print("outros", patches_added)
                         break
 
     return patches_files
@@ -198,11 +195,11 @@ def h5file_from_patches(train_size, test_size, queue, patch_size=SIZE):
 
 
 def main():
-    deeptrache_folder = pathlib.Path("datasets").resolve()
+    deeplungs_folder = pathlib.Path("datasets").resolve()
     # deeptrache_folder = pathlib.Path("datasets").resolve()
     # files = file_utils.get_lidc_filenames(deeptrache_folder)
 
-    trachea_files = file_utils.get_trachea_files(deeptrache_folder)
+    trachea_files = file_utils.get_files(deeplungs_folder)
 
     patches_files = gen_all_patches(trachea_files)
     # random.shuffle(patches_files)

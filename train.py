@@ -81,6 +81,8 @@ def save_checkpoint(
     std: float,
     is_best: bool = False,
 ):
+    if isinstance(model, nn.DataParallel):
+        model = model.module
     checkpoint = {
         "epoch": epoch,
         "model_state_dict": model.state_dict(),
@@ -160,12 +162,10 @@ def train():
     writer = SummaryWriter()
     writer.add_graph(model, torch.randn(1, 1, SIZE, SIZE, SIZE))
 
-    if torch.cuda.device_count() > 1:
-        model = nn.DataParallel(model)
     model.to(dev)
 
-    image_test = nb.load("datasets/ID00073637202198167792918/image.nii.gz").get_fdata()
-    mask_test = nb.load("datasets/ID00073637202198167792918/mask.nii.gz").get_fdata()
+    image_test = nb.load("datasets/images/ID00020637202178344345685.nii.gz").get_fdata()
+    mask_test = nb.load("datasets/masks/ID00020637202178344345685.nii.gz").get_fdata()
 
     writer.add_image("Groundtruth View 1", np.expand_dims(mask_test.max(0), 0), 0)
     writer.add_image("Groundtruth View 2", np.expand_dims(mask_test.max(1), 0), 0)
@@ -187,9 +187,9 @@ def train():
         f"{len(training_files_gen)}, {training_files_gen.x.shape[0]}, {args.batch_size}"
     )
 
-    # criterion = DiceLoss(apply_sigmoid=False)
+    criterion = DiceLoss(apply_sigmoid=False)
     # criterion = nn.BCELoss()
-    criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([pos_weight]).to(dev))
+    # criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([pos_weight]).to(dev))
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9)
     if args.continue_train:
         epoch, model, optimizer, best_loss = load_checkpoint(model, optimizer)
@@ -197,6 +197,9 @@ def train():
     else:
         start_epoch = 0
         best_loss = 100000
+
+    if torch.cuda.device_count() > 1:
+        model = nn.DataParallel(model)
 
     epochs_no_improve = 0
     for epoch in trange(start_epoch, args.epochs):
@@ -212,11 +215,13 @@ def train():
             if stage == "train":
                 model.train()
                 t = trange(len(training_files_gen))
+                files_gen = training_files_gen
             else:
                 model.eval()
                 t = trange(len(testing_files_gen))
+                files_gen = testing_files_gen
 
-            for i, (x, y_true) in zip(t, training_files_gen):
+            for i, (x, y_true) in zip(t, files_gen):
                 x = (x - mean) / std
                 x = torch.from_numpy(x).to(dev)
                 y_true = torch.from_numpy(y_true).to(dev)

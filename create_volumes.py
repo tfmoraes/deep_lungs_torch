@@ -7,7 +7,7 @@ import nibabel as nib
 import numpy as np
 import pydicom
 
-ignore = ["ID00052637202186188008618"]
+ignore = ["ID00132637202222178761324"]
 
 def read_dicom_to_ndarray(folder: pathlib.Path) -> np.ndarray:
     dicom_arrs = []
@@ -50,18 +50,19 @@ def main():
     masks_output_folder.mkdir(parents=True, exist_ok=True)
 
     for mask_folder in masks_folder.iterdir():
-        if images_train_folder.joinpath(mask_folder.name).exists():
-            image_folder = images_train_folder.joinpath(mask_folder.name)
-        elif images_test_folder.joinpath(mask_folder.name).exists():
-            image_folder = images_test_folder.joinpath(mask_folder.name)
-        else:
-            print('err')
-            continue
-        print(image_folder)
-        dcm_array  = read_dicom_to_ndarray(image_folder)
-        images_array = read_images_to_ndarray(mask_folder)
-        save_to_nii(dcm_array, images_output_folder.joinpath(mask_folder.name).with_suffix('.nii.gz'))
-        save_to_nii(images_array, masks_output_folder.joinpath(mask_folder.name).with_suffix('.nii.gz'))
+        if mask_folder.name not in ignore:
+            if images_train_folder.joinpath(mask_folder.name).exists():
+                image_folder = images_train_folder.joinpath(mask_folder.name)
+            elif images_test_folder.joinpath(mask_folder.name).exists():
+                image_folder = images_test_folder.joinpath(mask_folder.name)
+            else:
+                print('err')
+                continue
+            print(image_folder)
+            dcm_array  = read_dicom_to_ndarray(image_folder)
+            images_array = read_images_to_ndarray(mask_folder)
+            save_to_nii(dcm_array, images_output_folder.joinpath(mask_folder.name).with_suffix('.nii.gz'))
+            save_to_nii(images_array, masks_output_folder.joinpath(mask_folder.name).with_suffix('.nii.gz'))
         # if dicom_folder.name not in ignore:
         #     dcm_array = read_dicom_to_ndarray(dicom_folder)
         #     nii_filename = output_folder.joinpath(dicom_folder.name, "image.nii.gz")

@@ -186,5 +186,11 @@ tags
 
 # End of https://www.toptal.com/developers/gitignore/api/python,vim
 
+*.c
+*.h5
 datasets/
 .nix-profiles/
+runs/
+weights/
+checkpoints/
+
