@@ -4,6 +4,7 @@ import shutil
 import typing
 
 import h5py
+import matplotlib.pyplot as plt
 import nibabel as nb
 import numpy as np
 import torch
@@ -120,6 +121,27 @@ def calc_accuracy(y_pred: torch.Tensor, y_true: torch.Tensor) -> float:
         return acc
 
 
+def plot_images_comparison(gt_image1, gt_image2, gt_image3, image1, image2, image3):
+    fig = plt.figure()
+
+    fig.add_subplot(3, 2, 1)
+    plt.imshow(gt_image1)
+    fig.add_subplot(3, 2, 2)
+    plt.imshow(image1)
+
+    fig.add_subplot(3, 2, 3)
+    plt.imshow(gt_image2)
+    fig.add_subplot(3, 2, 4)
+    plt.imshow(image2)
+
+    fig.add_subplot(3, 2, 5)
+    plt.imshow(gt_image3)
+    fig.add_subplot(3, 2, 6)
+    plt.imshow(image3)
+
+    return fig
+
+
 class HDF5Sequence:
     def __init__(self, filename: str, batch_size: int):
         self.f_array = h5py.File(filename, "r")
@@ -167,9 +189,9 @@ def train():
     image_test = nb.load("datasets/images/ID00020637202178344345685.nii.gz").get_fdata()
     mask_test = nb.load("datasets/masks/ID00020637202178344345685.nii.gz").get_fdata()
 
-    writer.add_image("Groundtruth View 1", np.expand_dims(mask_test.max(0), 0), 0)
-    writer.add_image("Groundtruth View 2", np.expand_dims(mask_test.max(1), 0), 0)
-    writer.add_image("Groundtruth View 3", np.expand_dims(mask_test.max(2), 0), 0)
+    groundtruth_image_1 = mask_test.max(0)
+    groundtruth_image_2 = mask_test.max(1)
+    groundtruth_image_3 = mask_test.max(2)
 
     training_files_gen = HDF5Sequence("train_arrays.h5", args.batch_size)
     testing_files_gen = HDF5Sequence("test_arrays.h5", args.batch_size)
@@ -244,7 +266,11 @@ def train():
         dz, dy, dx = image_test.shape
         output_test = brain_segment(image_test, model, dev, mean, std)
         print("Min max", output_test.min(), output_test.max())
+
         output_test = (output_test > 0.75) * 1.0
+        output_image_1 = output_test.max(0)
+        output_image_2 = output_test.max(1)
+        output_image_3 = output_test.max(2)
 
         actual_loss = np.mean(losses["train"])
 
@@ -257,6 +283,19 @@ def train():
         writer.add_image("View 1", output_test.max(0).reshape(1, dy, dx), epoch)
         writer.add_image("View 2", output_test.max(1).reshape(1, dz, dx), epoch)
         writer.add_image("View 3", output_test.max(2).reshape(1, dz, dy), epoch)
+
+        writer.add_figure(
+            "Comparison",
+            plot_images_comparison(
+                groundtruth_image_1,
+                groundtruth_image_2,
+                groundtruth_image_3,
+                output_image_1,
+                output_image_2,
+                output_image_3,
+            ),
+            epoch,
+        )
 
         if actual_loss <= best_loss:
             best_loss = actual_loss
